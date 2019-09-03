@@ -19,4 +19,4 @@ L_NCDF = -lnetcdff
 FF = -O2 -ffree-line-length-200 -J./mod -I./mod -w -fbounds-check
 
 # Directory to install binaries:
-INSTALL_DIR = /usr/local
+INSTALL_DIR = /shared/earth/software/sosie/3.0-foss-2015a

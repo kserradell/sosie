@@ -72,29 +72,18 @@
 !!--------------------------------------------------------------------------
 !!
 &ndom_src
-csource    = 'Blabla'
+csource    = 'ETOPO1_21601x10801'
 ivect      = 0
 l_reg_src  = .true.
-cf_src     = '/data/toto/my_file.nc'
-cv_src     = 'temp'
-cv_t_src   = 'time'
-cf_x_src   = '/data/toto/my_file.nc'
-cv_lon_src = 'lon'
-cv_lat_src = 'lat'
-cf_lsm_src = 'missing_value'
+cf_src     = '/mnt/meom/workdir/brodeau/ETOPO1_ATL.nc'
+cv_src     = 'z'
+cv_t_src   = 'missing_rec'
+cf_x_src   = '/mnt/meom/workdir/brodeau/ETOPO1_ATL.nc'
+cv_lon_src = 'x'
+cv_lat_src = 'y'
+cf_lsm_src = ''
 cv_lsm_src = ''
-ewper_src  = 0
-!!
-!! Only required if 3D interpolation (jplev==0):
-cf_z_src  = '/data/toto/my_file.nc'
-cv_z_src  = 'level'
-!! ROMS s-coordinates stuff only:
-ctype_z_src = 'sigma'
-cf_bathy_src = ''
-cv_bathy_src = ''
-!!   ROMS s-coordinates parameters (if ctype_z_src or/and ctype_z_trg = 'sigma' )
-!!   Vtransform | Vstretching | Nlevels | theta_s | theta_b | Tcline | hmin
-ssig_src =  2,         4,         40,       7.,       2.,     250. ,   15.
+ewper_src  = -1
 /
 !!
 !!
@@ -119,17 +108,18 @@ ssig_src =  2,         4,         40,       7.,       2.,     250. ,   15.
 !!         * cv_lat_trg = '1.0'  ! your dy, here 1.0 deg.
 !!
 !!
-!! cf_lsm_trg : (not needed if "lmout = .FALSE." --> '')
-!!              file containing TARGET land-sea mask [char]
-!!              land-sea mask MUST BE 3D for 3D interpolation!
-!!              - or specify 'missing_value' if you want to "scan" field "cv_lsm_trg"
-!!                into file "cf_x_trg" after values that seem to define a masked region!
+!! cf_lsm_trg : file containing target land-sea mask [char]
+!!              MUST BE 3D for 3D interpolation!
+!!              - or specify 'missing_value' if a 'missing_value' netcdf
+!!                attribute defines the mask on a field 'X' in file 'cf_x_trg'
+!!                (not needed if "lmout = .FALSE." --> '')
+!!              - or specify 'val' so points with value "rmiss_val" in the file
+!!                to be saved will be masked!
 !!
-!! cv_lsm_trg : (not needed if "lmout = .FALSE." --> '')
-!!              name of land-sea mask variable in 'cf_lsm_trg'     [char]
-!!              - or name of field 'X' in 'cf_x_trg' that seem to define a masked
-!!                region (based on NaN/missing value) IF you specified
-!!                cf_lsm_trg = 'missing_value'
+!! cv_lsm_trg : name of land-sea mask variable in 'cf_lsm_trg'     [char]
+!!              or name of field 'X' in 'cf_x_trg' if you specified
+!!              cf_lsm_trg = 'missing_value'
+!!              (not needed if "lmout = .FALSE." --> '')
 !!
 !! ewper_trg : east-west periodicity on the target file/grid [integer]
 !!             = -1 --> no periodicity
@@ -150,25 +140,15 @@ ssig_src =  2,         4,         40,       7.,       2.,     250. ,   15.
 !!    ssig_trg     : structure with ROMS s-coordinates parameters on target grid (see above)
 !!--------------------------------------------------------------------------
 &ndom_trg
-ctarget    = 'ORCA2'
+ctarget    = 'NATL60'
 l_reg_trg  = .false.
-cf_x_trg   = '/data/toto/coordinates_ORCA_R2.nc'
-cv_lon_trg = 'nav_lon'
-cv_lat_trg = 'nav_lat'
-cf_lsm_trg = '/data/toto/mask_ORCA2.nc'
+cf_x_trg   = '/mnt/meom/MODEL_SET/NATL60/NATL60-I/NATL60_v4.1_cdf_mesh_hgr.nc'
+cv_lon_trg = 'glamt'
+cv_lat_trg = 'gphit'
+cf_lsm_trg = '/mnt/meom/MODEL_SET/NATL60/NATL60-I/NATL60_v4.1_cdf_byte_mask.nc'
 cv_lsm_trg = 'tmask'
-ewper_trg  = 2
+ewper_trg  = -1
 !!
-!! Only required if 3D interpolation (jplev==0):
-cf_z_trg = '/data/toto/mesh_zgr.nc'
-cv_z_trg = 'nav_lev'
-ctype_z_trg = 'z'
-!!
-cf_bathy_trg = '/data/toto/roms_grid.nc'
-cv_bathy_trg = 'h'
-!! ROMS s-coordinates parameters (if ctype_z_src or/and ctype_z_trg = 'sigma' )
-!! Vtransform | Vstretching | Nlevels | theta_s | theta_b | Tcline | hmin
-ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 /
 !!
 !!
@@ -188,26 +168,17 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 !!              but on nk_trg levels!
 !!              => for example interpolates a 3D field from grid ORCAX.L46 to ORCAX.L75
 !!
-!! idrown : Three values in this structure: np_drown, nt_smooth, l_msk_chg ([integer],[integer],[boolean]):
+!! idrown : Two values in this structure: np_drown, nt_smooth ([integer],[integer]):
 !!          * np_drown : whether we call DROWN land filling procedure (>0) or not (=0)
 !!            which propagates/extrapolates sea values (defined where lsm==1) of field
 !!            cv_src by "np_drown" grid points over land regions (defined where lsm==0)
 !!          * nt_smooth : the number of time smoothing is applied on drowned regions
 !!            (only performed on land regions)
-!!          * l_msk_chg : wether the missing/masked points region (land) on source field is changing with time!
 !!          => this treatment has absolutely no impact over sea regions, only over land
 !!          regions, it is intended to prevent land values to polute/contaminate sea
 !!          regions during the interpolation process!
 !!
-!! ixtrpl_bot : in case of 3D interpolation, this option forces sosie to vertically
-!!              extrapolate the source field (on its source grid) downward into the
-!!              bedrock prior to interpolation
-!!              = 0 : not used
-!!              = 1 : used, method => persistence of the wet bottom point value
-!!              = 2 : used, method => using the DROWN routine...
-!!
-!! l_save_drwn : save the input field after it has undergone "DROWNING" (idrown > 0!)
-!!               and/or downward bedrock extrapolation (ixtrpl_bot > 0!)
+!! l_save_drwn : save the input field that has been drowned (idrown must be > 0!)
 !!
 !! ismooth : if ismooth > 0 the field to be interpolated will be smoothed
 !!           prior to interpolation. By applying ismooth times a type of
@@ -248,8 +219,7 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 &ninterp
 cmethod     = 'akima'
 !!
-idrown      = 100,50,.FALSE.
-ixtrpl_bot  = 0
+idrown      = 0,0
 l_save_drwn = .false.
 ismooth     = 0
 jt1         = 0
@@ -285,7 +255,7 @@ ibx_xtra_sm = 0, 0,0, 0,0  ! Extra-smoothing on a given rectangular region: ibx_
 !!         if lmout is set to .FALSE. and cf_lsm_trg is different than '' the target
 !!         field will be drowned using the mask defined by cf_lsm_trg (and cv_lsm_trg)
 !!
-!! rmiss_val : missing value given to target field (for continents) [real]
+!! rmiss_val : missing value given to target field (for continents) [logical]
 !!
 !! lct   : whether to control or not time variable [logical]
 !!         TRUE -> specify time array with starting time 't0' and step 't_stp'
@@ -299,18 +269,16 @@ ibx_xtra_sm = 0, 0,0, 0,0  ! Extra-smoothing on a given rectangular region: ibx_
 !!
 !!
 &noutput
-cv_out    = 'temp'
+cv_out    = 'z'
 cu_out    = ''
 cln_out   = ''
 cv_t_out  = 'time_counter'
 cd_out    = '.'
-cextra    = 'monthly_1998'
-lmout     = .true.
+cextra    = 'ice'
+lmout     = .false.
 rmiss_val = -9999.
 lct       = .false.
 t0        = 0.
 t_stp     = 0.
-!! Only required if 3D interpolation (jplev==0):
-cv_z_out  = 'depth'
 /
 !!

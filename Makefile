@@ -35,6 +35,7 @@ obj/mod_conf.o \
 obj/mod_init.o \
 obj/mod_manip.o \
 obj/mod_grids.o \
+obj/mod_bdrown.o \
 obj/mod_drown.o \
 obj/mod_akima_2d.o \
 obj/mod_bilin_2d.o \
@@ -44,11 +45,24 @@ obj/mod_interp.o \
 obj/mod_nemotools.o \
 obj/mod_poly.o
 
+#obj/mod_drown.o \
+
 OBJ_I2GT = obj/io_ezcdf.o \
 obj/mod_conf.o \
 obj/mod_manip.o \
 obj/mod_drown.o \
+obj/mod_bdrown.o \
 obj/mod_bilin_2d.o \
+obj/mod_poly.o
+
+#obj/mod_drown.o \
+
+OBJ_I2HS = obj/io_ezcdf.o \
+obj/mod_conf.o \
+obj/mod_manip.o \
+obj/mod_bdrown.o \
+obj/mod_bilin_2d.o \
+obj/mod_akima_1d.o \
 obj/mod_poly.o
 
 OBJ_CRS = obj/mod_nemo.o obj/crs.o obj/crsdom.o
@@ -57,11 +71,12 @@ OBJ_CRS = obj/mod_nemo.o obj/crs.o obj/crsdom.o
 # Modules to install in $INSTALL_DIR/include :
 MOD_INST= mod/io_ezcdf.mod \
 mod/mod_akima_2d.mod \
-mod/mod_drown.mod
+mod/mod_bdrown.mod
 
-all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_track.x bin/ij_from_lon_lat.x
+all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/ij_from_lon_lat.x
 
-gt: bin/interp_to_ground_track.x
+i2gt: bin/interp_to_ground_track.x
+i2hs: bin/interp_to_hydro_section.x
 
 crs: bin/nemo_coarsener.x
 
@@ -84,6 +99,10 @@ bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
 bin/interp_to_ground_track.x: src/interp_to_ground_track.f90 $(OBJ_I2GT)
 	@mkdir -p bin
 	$(FC) $(FF) $(OBJ_I2GT) src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LIB_CDF)
+
+bin/interp_to_hydro_section.x: src/interp_to_hydro_section.f90 $(OBJ_I2HS)
+	@mkdir -p bin
+	$(FC) $(FF) $(OBJ_I2HS) src/interp_to_hydro_section.f90 -o bin/interp_to_hydro_section.x $(LIB_CDF)
 
 bin/ij_from_lon_lat.x: src/ij_from_lon_lat.f90 obj/io_ezcdf.o obj/mod_manip.o
 	@mkdir -p bin
@@ -150,6 +169,9 @@ obj/mod_manip.o: src/mod_manip.f90
 obj/mod_drown.o: src/mod_drown.f90
 	$(FC) $(FF) -c src/mod_drown.f90 -o obj/mod_drown.o
 
+obj/mod_bdrown.o: src/mod_bdrown.f90
+	$(FC) $(FF) -c src/mod_bdrown.f90 -o obj/mod_bdrown.o
+
 obj/mod_akima_2d.o: src/mod_akima_2d.f90
 	$(FC) $(FF) -c src/mod_akima_2d.f90 -o obj/mod_akima_2d.o
 
@@ -190,11 +212,10 @@ uninstall:
 	rm -f $(INSTALL_DIR)/lib/$(LIB_SOSIE) $(INSTALL_DIR)/bin/apply_zon_corr.x
 	rm -f $(INSTALL_DIR)/include/io_ezcdf.mod
 
-
 clean:
 	rm -f bin/* $(LIB_SOSIE) *.out mod/*.mod *.x *~ *\# src/*~ src/*\# *.log *.tmp fort.*
 	rm -rf bin mod lib obj
 
-mrproper: clean
+distclean: clean
 	rm -f examples/*.nc4 examples/*.nc examples/ORCAX_to_ORCAY/*.nc examples/interp_to_ground_track/*.nc
-	rm -f examples/data/*.drwn
+	rm -f examples/data/*.drwn examples/ij_from_lon_lat/*.out

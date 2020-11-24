@@ -46,7 +46,7 @@ PROGRAM SOSIE
 
    IMPLICIT NONE
 
-   CHARACTER(len=800) :: cextinf
+   CHARACTER(len=800) :: cextinf, cf_drwn
 
    INTEGER    :: &
       &   ji, jj, &
@@ -106,8 +106,10 @@ PROGRAM SOSIE
 
 
 
-
-
+   jj = SCAN(TRIM(cf_src), '.', BACK=.TRUE.) - 1
+   ji = SCAN(TRIM(cf_src), '/', BACK=.TRUE.) + 1
+   cf_drwn = TRIM(cf_src(ji:jj))//'_DROWNED.nc'
+   
 
 
    !!                -------------------------------
@@ -136,7 +138,7 @@ PROGRAM SOSIE
 
          !! Read data 2D field at time jte :
          CALL GETVAR_2D(idf_i, idv_i, cf_src, cv_src, Ntr, jplev*jcz, jte*jct, data_src, jt1=j_start, jt2=j_stop)
-         
+
          !IF ((TRIM(cf_lsm_src)=='nan').OR.(TRIM(cf_lsm_src)=='NaN')) THEN
          !! Replacing NaN with 0. to avoid some fuck-up later...
          DO jj =  1, nj_src
@@ -156,22 +158,22 @@ PROGRAM SOSIE
             &      lon_trg_b, lat_trg, vt, data_trg,    &
             &      cf_out, cv_lon_trg, cv_lat_trg, cv_t_out,    &
             &      cv_out, rfct_miss*REAL(rmiss_val,4), &
-            &      attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_time=vatt_info_t, attr_F=vatt_info_F, &
+            &      attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_t=vatt_info_t, attr_F=vatt_info_F, &
             &      cextrainfo=cextinf)
 
          IF ( l_save_drwn ) THEN
             CALL P2D_T(idf_id, idv_id, Ntr, jt,    &
                &       lon_src, lat_src, vt, data_src_drowned(:,:,1),    &
-               &       TRIM(cf_src)//'.drwn', cv_lon_src, cv_lat_src, cv_t_src,    &
+               &       TRIM(cf_drwn), cv_lon_src, cv_lat_src, cv_t_src,    &
                &       cv_src, 0., &
-               &       attr_lon=vatt_info_lon_src, attr_lat=vatt_info_lat_src, attr_time=vatt_info_t, attr_F=vatt_info_F )
+               &       attr_lon=vatt_info_lon_src, attr_lat=vatt_info_lat_src, attr_t=vatt_info_t, attr_F=vatt_info_F )
          END IF
 
 
       ELSE
 
 
-         
+
          !! ================
          !! 3D INTERPOLATION
          !! ================
@@ -197,16 +199,16 @@ PROGRAM SOSIE
                &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_out, cv_t_out, &
                &       cv_out, rfct_miss*REAL(rmiss_val,4), &
                &       attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_z=vatt_info_z_trg, &
-               &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
+               &       attr_t=vatt_info_t, attr_F=vatt_info_F, &
                &       cextrainfo=cextinf)
 
             IF ( l_save_drwn ) THEN
                CALL P3D_T(idf_id, idv_id, Ntr, jt,    &
                   &       lon_src, lat_src, REAL(depth_src(1,1,:),8), vt, data_src_drowned(:,:,:), &
-                  &       TRIM(cf_src)//'.drwn', cv_lon_src, cv_lat_src, cv_z_src, cv_t_src,    &
+                  &       TRIM(cf_drwn), cv_lon_src, cv_lat_src, cv_z_src, cv_t_src,    &
                   &       cv_src, 0., &
                   &       attr_lon=vatt_info_lon_src, attr_lat=vatt_info_lat_src, attr_z=vatt_info_z_src, &
-                  &       attr_time=vatt_info_t, attr_F=vatt_info_F )
+                  &       attr_t=vatt_info_t, attr_F=vatt_info_F )
             END IF
 
 
@@ -218,7 +220,7 @@ PROGRAM SOSIE
                &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_out, cv_t_out, &
                &       cv_out, rfct_miss*REAL(rmiss_val,4), &
                &       attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_z=vatt_info_z_trg, &
-               &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
+               &       attr_t=vatt_info_t, attr_F=vatt_info_F, &
                &       cextrainfo=cextinf)
          ELSE
             PRINT *, 'Unknown vertical coordinate' ; STOP
@@ -232,7 +234,7 @@ PROGRAM SOSIE
 
    PRINT *, ''; PRINT *, TRIM(cf_out), ' is created'; PRINT *, ''
 
-   IF ( l_save_drwn ) PRINT *, 'Also saved drowned input field => ', TRIM(cf_src)//'.drwn'
+   IF ( l_save_drwn ) PRINT *, 'Also saved drowned input field => ', TRIM(cf_drwn)
 
    PRINT *, ''
 

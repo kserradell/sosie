@@ -1,5 +1,5 @@
-# Makefile for SOSIE with Intel Ifort on Linux
-# ============================================
+# Makefile for SOSIE with Intel Ifort on ige-meom-cal1
+# ====================================================
 
 # Fortran compiler:
 FC = ifort
@@ -7,13 +7,13 @@ FC = ifort
 # Root directory for Netcdf:
 # netcf libraries are in: <NETCDF_DIR>/lib/
 # netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
-NETCDF_DIR = /opt/hdf5_netcdf4_intel
+NETCDF_DIR = /opt/modules/netcdf/nompi/netcdf-4.4.1_intel15
 
 # Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
 L_NCDF = -lnetcdff
 
 # Compiler's libraries location:
-LIB_COMP_DIR = $(INTEL_DIR)/linux/compiler/lib/intel64_lin
+LIB_COMP_DIR = /opt/intel/composer_xe_2015.3.187/compiler/lib/intel64
 
 
 # Fortran compilation flags:
@@ -21,8 +21,7 @@ LIB_COMP_DIR = $(INTEL_DIR)/linux/compiler/lib/intel64_lin
 FF = -O3 -i4 -xHOST -traceback -module mod/
 #
 # -- Debugging
-#FF = -O0 -g -check all -warn all -traceback -debug extended -C -module mod/
-#FF = -O0 -g -check all -fpe0 -warn all -traceback -debug extended -C -module mod/
+##FF = -O0 -g -check all -fpe0 -warn all -traceback -debug extended -C -module mod/
 #FF = -O2 -g -check all -traceback -debug extended -C -module mod/
 #FF = -O0 -qopenmp -g -check all -warn all -traceback -debug extended -CB -module mod/
 
@@ -33,9 +32,3 @@ FF = -O3 -i4 -xHOST -traceback -module mod/
 # Directory to install binaries:
 INSTALL_DIR = /usr/local
 
-
-# interp_to_ephem.x requires the "datetime fortran" library modules to be compiled on your system!
-# => https://github.com/wavebitscientific/datetime-fortran
-#
-DATETIME_FORTRAN_DIR=$(HOME)/src/datetime-fortran/build
-#

@@ -12,7 +12,7 @@ VERSION = 8.3.0
 NETCDF_DIR = /gpfs/projects/bsc32/software/suselinux/11/software/netCDF-Fortran/4.4.5-gompi-2019b
 
 # Linking argument: usually "-lnetcdf", "-lnetcdff" or "-lnetcdf -lnetcdff" :
-L_NCDF = -lnetcdf -lnetcdff
+L_NCDF = -lnetcdff
 
 # Compiler's libraries location:
 LIB_COMP_DIR = /gpfs/projects/bsc32/software/suselinux/11/software/GCCcore/$(VERSION)
@@ -33,5 +33,4 @@ FF_SAFE = $(FF)
 
 
 # Directory to install binaries:
-INSTALL_DIR = /gpfs/projects/bsc32/software/suselinux/11/software/sosie/3.0-foss-2019b 
-
+INSTALL_DIR = /gpfs/projects/bsc32/software/suselinux/11/software/sosie/3.0-foss-2019b

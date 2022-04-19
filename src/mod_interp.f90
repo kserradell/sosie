@@ -159,22 +159,15 @@ CONTAINS
 
       PRINT *, ''
 
-      IF( ixtrpl_bot == 1 ) THEN
-         PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
-         PRINT *, '    ==> using persistence method'
-         !! Downward extrapolation of last wet value into the sea-bed
-         DO jj=1, nj_src
-            DO ji=1, ni_src
-               jk_bot = FINDLOC( mask_src(ji,jj,:), 0, 1 )   ! first bedrock point
-               IF( jk_bot>1 ) THEN
-                  zwet   = data3d_src(ji,jj,jk_bot-1)
-                  !PRINT *, 'LOLO: bottom: jk_bot, nk_src, zwet =', jk_bot, nk_src, zwet
-                  data3d_src(ji,jj,jk_bot:nk_src) = zwet ! persistence !
-               END IF
-            END DO
+      IF( cmethod /= 'no_xy' ) THEN
+         DO jk = 1, nk_src
+            IF( nlat_icr_src == -1 ) CALL FLIP_UD(data3d_src(:,:,jk))
+            IF( nlon_icr_src == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_src(:,:,jk))
          END DO
       END IF
-      
+
+
+
       IF( (ixtrpl_bot == 2).AND.(nk_src > 5) ) THEN
          PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
          PRINT *, '    ==> using DROWN method'
@@ -206,11 +199,6 @@ CONTAINS
 
          PRINT *, '### Preparing source field at level : ', jk
 
-         IF( cmethod /= 'no_xy' ) THEN !LOLO: WHY????
-            IF( nlat_icr_src == -1 ) CALL FLIP_UD(data3d_src(:,:,jk))
-            IF( nlon_icr_src == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_src(:,:,jk))
-         END IF
-
          IF( l_drown_src ) THEN
             !! Now, the official DROWN can be done!
             !! Extrapolate sea values over land :
@@ -226,7 +214,26 @@ CONTAINS
             PRINT *, 'DROWN NOT CALLED!!!'
             PRINT *, '-------------------'
          END IF
-         
+
+
+         IF( ixtrpl_bot == 1 ) THEN
+            PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
+            PRINT *, '    ==> using persistence method'
+            !! Downward extrapolation of last wet value into the sea-bed
+            DO jj=1, nj_src
+               DO ji=1, ni_src
+                  IF(mask_src(ji,jj,1) == 1) THEN
+                     jk_bot = FINDLOC( mask_src(ji,jj,:), 0, 1 )   ! first bedrock point
+                     IF( jk_bot>1 ) THEN
+                        zwet   = data3d_src(ji,jj,jk_bot-1)
+                        !PRINT *, 'LOLO: bottom: jk_bot, nk_src, zwet =', jk_bot, nk_src, zwet
+                        data3d_src(ji,jj,jk_bot:nk_src) = zwet ! persistence !
+                     END IF
+                  END IF
+               END DO
+            END DO
+         END IF
+
          IF( ismooth > 0 ) THEN
             IF( TRIM(cmethod) == 'no_xy' ) THEN
                PRINT *, 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
@@ -240,7 +247,7 @@ CONTAINS
                CALL SMOOTHER(ewper_src, data3d_src(:,:,jk),  nb_smooth=ismooth, msk=mask_src(:,:,jk), l_exclude_mask_points=.TRUE.)
             END IF
          END IF
-         
+
          !! If source field is from NEMO (Glorys, etc...), then the last level
          !! is 100% mask, we just want to copy the drowned level just above to
          !! prevent shit in vertical interpolation to come...
@@ -249,11 +256,8 @@ CONTAINS
                data_src_drowned(:,:,jk) = data_src_drowned(:,:,jk-1)
             END IF
          END IF
-         
+
       END DO !DO jk = 1, nk_src
-
-
-
 
 
 
@@ -349,7 +353,7 @@ CONTAINS
          PRINT *, ''
          IF( (TRIM(ctype_z_src) == 'z').AND.(TRIM(ctype_z_trg) == 'z') ) THEN
             !CALL DUMP_FIELD( data3d_tmp(:,:,:), TRIM(cv_src)//'_INPUT_INTERP_BEFORE_VERT_INTERP.nc', TRIM(cv_src) ) ; !lolo
-            
+
             !! Go for the vectorial routine...
             PRINT *, ' *** CALLING AKIMA_1D_3D for vertical interpolation !!!'
             WRITE(6,'("      => ",i4.4," x ",i4.4," x ",i3.3," to ",i4.4," x ",i4.4," x ",i3.3)') &
@@ -440,6 +444,32 @@ CONTAINS
       END IF  !IF( .NOT. l_identical_levels )      ! => no vertical interpolation required...
 
 
+
+
+
+      IF( ixtrpl_bot == 1 ) THEN
+         !! Need to do it on interpolated field as well...
+         PRINT *, '### Extrapolating bottom value of INTERPOLATED field downward into the sea-bed!'
+         !PRINT *, '    ==> using persistence method'
+         !! Downward extrapolation of last wet value into the sea-bed
+         DO jj=1, nj_trg
+            DO ji=1, ni_trg
+               
+               IF(mask_trg(ji,jj,1) == 1) THEN
+                  jk_bot = FINDLOC( mask_trg(ji,jj,:), 0, 1 )   ! first bedrock point
+                  IF( jk_bot>1 ) THEN
+                     zwet   = data3d_trg(ji,jj,jk_bot-1)
+                     !PRINT *, 'LOLO: bottom: jk_bot, nk_trg, zwet =', jk_bot, nk_trg, zwet
+                     data3d_trg(ji,jj,jk_bot:nk_trg) = zwet ! persistence !
+                  END IF
+               END IF               
+
+               
+            END DO
+         END DO
+      END IF
+
+
       !! avoid working with 3D arrays as a whole : produce SEGV on some machines (small)
       !! RD : replaced out of bounds values by vmin/vmax not rmiss_val
       !! as it induced spval instead of zero on BGC fields
@@ -475,12 +505,10 @@ CONTAINS
 
       END DO
 
-
-
       PRINT *, ''
       PRINT *, ' 3D interpolation done!'
       PRINT *, ''
-
+      
    END SUBROUTINE INTERP_3D
 
 

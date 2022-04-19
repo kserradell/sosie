@@ -1,4 +1,4 @@
-MODULE MOD_BDROWN
+MODULE MOD_DROWN
 
    !USE io_ezcdf !LOLO
    !USE mod_manip
@@ -7,7 +7,7 @@ MODULE MOD_BDROWN
 
    PRIVATE
 
-   PUBLIC :: bdrown, smoother
+   PUBLIC :: drown, smoother
 
    LOGICAL, PARAMETER :: ldebug = .FALSE.
 
@@ -15,7 +15,7 @@ MODULE MOD_BDROWN
 
 CONTAINS
 
-   SUBROUTINE BDROWN(k_ew, X, mask,   nb_inc, nb_smooth)
+   SUBROUTINE DROWN(k_ew, X, mask,   nb_inc, nb_smooth)
 
       !!#############################################################################
       !!
@@ -77,7 +77,7 @@ CONTAINS
 
 
       IF ( (size(X,1) /= size(mask,1)).OR.(size(X,2) /= size(mask,2)) ) THEN
-         PRINT *, 'ERROR, mod_bdrown.F90 => BDROWN : size of data and mask do not match!!!'; STOP
+         PRINT *, 'ERROR, mod_drown.F90 => DROWN : size of data and mask do not match!!!'; STOP
       END IF
 
       ni = SIZE(X,1)
@@ -109,7 +109,7 @@ CONTAINS
 
          !! Quiting if no land point left:
          IF ( .NOT. (ANY(maskv == 0))  ) THEN
-            IF ( ldebug ) PRINT *, 'BDROWN: No land points left! Leaving incursion loop at jinc =', jinc
+            IF ( ldebug ) PRINT *, 'DROWN: No land points left! Leaving incursion loop at jinc =', jinc
             EXIT
          END IF
 
@@ -197,7 +197,7 @@ CONTAINS
 
 
          !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(maskv,4), 'maskv.nc', 'lsm')
-         !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(mask_coast,4), 'mask_coast.nc', 'lsm') !; STOP 'mod_bdrown.F90 => boo!'
+         !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(mask_coast,4), 'mask_coast.nc', 'lsm') !; STOP 'mod_drown.F90 => boo!'
          !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(X, 'data_X_before.nc', 'lsm')
          !STOP
 
@@ -414,14 +414,15 @@ CONTAINS
 
       DEALLOCATE ( maskv, mtmp, xtmp, dold, mask_coast )
 
-      IF ( ldebug ) PRINT *, 'BDROWN: jinc =', jinc
+      IF ( ldebug ) PRINT *, 'DROWN: jinc =', jinc
 
-   END SUBROUTINE BDROWN
+   END SUBROUTINE DROWN
 
 
 
 
    SUBROUTINE SMOOTHER(k_ew, X,  nb_smooth, msk, l_exclude_mask_points)
+
       !!#############################################################################
       !!
       !!  PURPOSE : Smooth a fied with a nearest-points box-car typ of smoothing
@@ -452,7 +453,6 @@ CONTAINS
       LOGICAL,    OPTIONAL                , INTENT(in) :: l_exclude_mask_points
 
       REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: xorig, xtmp, rdnm
-      INTEGER(1), ALLOCATABLE, DIMENSION(:,:) :: nbp
 
       INTEGER, DIMENSION(2) :: ivi, vim_per, vip_per
 
@@ -471,15 +471,17 @@ CONTAINS
       nsmooth_max = 10
       IF ( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
 
-      l_mask = PRESENT(msk)
+      l_mask = .FALSE.
+      IF ( PRESENT(msk) ) l_mask = .TRUE.
 
-      l_emp  = PRESENT(l_exclude_mask_points)
+      l_emp = .FALSE.
+      IF ( PRESENT(l_exclude_mask_points) ) l_emp = l_exclude_mask_points
 
       ni = SIZE(X,1)
       nj = SIZE(X,2)
 
       IF ( (l_emp).AND.(.NOT. l_mask) ) THEN
-         PRINT *, 'PROBLEM in SMOOTH (mod_bdrown.f90): you need to provide a "msk"'
+         PRINT *, 'PROBLEM in SMOOTH (mod_drown.f90): you need to provide a "msk"'
          PRINT *, '                                    if you set l_exclude_mask_points=.true.!'
          STOP
       END IF
@@ -488,9 +490,8 @@ CONTAINS
       ALLOCATE ( xtmp(ni,nj) )
 
       IF (l_emp) THEN
-         ALLOCATE ( rdnm(ni,nj) , nbp(ni,nj) )
-         rdnm(:,:) = 0.25
-         nbp(:,:)  = 0
+         ALLOCATE ( rdnm(ni,nj) )
+         rdnm(ni,nj) = 0.25
       END IF
 
       IF ( l_mask ) THEN
@@ -515,10 +516,7 @@ CONTAINS
          !! Center of the domain:
          !! ---------------------
          IF ( l_emp ) THEN
-            !! -- SMOOTHER is excluding masked points...'
-            nbp(2:ni-1,2:nj-1) =   msk(3:ni,2:nj-1) + msk(2:ni-1,3:nj) + msk(1:ni-2,2:nj-1) + msk(2:ni-1,1:nj-2) & ! Number of non-masked surrounded points
-               &                 + msk(3:ni,3:nj)   + msk(3:ni,1:nj-2) + msk(1:ni-2,1:nj-2) + msk(1:ni-2,3:nj)
-
+            !PRINT *, ' -- SMOOTH is excluding masked points...'
             rdnm(2:ni-1,2:nj-1) = 1. / MAX( REAL( &
                &          msk(3:ni,2:nj-1) + msk(2:ni-1,3:nj) + msk(1:ni-2,2:nj-1) + msk(2:ni-1,1:nj-2)   &
                & + ris2*( msk(3:ni,3:nj)   + msk(3:ni,1:nj-2) + msk(1:ni-2,1:nj-2) + msk(1:ni-2,3:nj) )  ,4), 0.01 )
@@ -527,9 +525,6 @@ CONTAINS
                & + (1.-w0)*(         xtmp(3:ni,2:nj-1) + xtmp(2:ni-1,3:nj) + xtmp(1:ni-2,2:nj-1) + xtmp(2:ni-1,1:nj-2)    &
                &            + ris2*( xtmp(3:ni,3:nj)   + xtmp(3:ni,1:nj-2) + xtmp(1:ni-2,1:nj-2) + xtmp(1:ni-2,3:nj) )  ) &
                &                                  * rdnm(2:ni-1,2:nj-1)
-
-            WHERE( nbp(2:ni-1,2:nj-1) == 0 ) X(2:ni-1,2:nj-1) = xorig(2:ni-1,2:nj-1)  ! We do nothing for pixels that have zero neighbor!!!
-
          ELSE
             !IF ( l_mask ) PRINT *, ' -- SMOOTH is NOT excluding masked points! (despite presence of "msk")'
             X(2:ni-1,2:nj-1) = w0   *xtmp(2:ni-1,2:nj-1) &
@@ -550,10 +545,6 @@ CONTAINS
 
 
                IF ( l_emp ) THEN
-                  !! -- SMOOTHER is excluding masked points...'
-                  nbp(ji,2:nj-1) =   msk(jip,2:nj-1) + msk(ji,3:nj)    + msk(jim,2:nj-1) + msk(ji,1:nj-2) & ! Number of non-masked surrounded points
-                     &             + msk(jip,3:nj)   + msk(jip,1:nj-2) + msk(jim,1:nj-2) + msk(jim,3:nj)
-
                   rdnm(ji,2:nj-1) = 1./MAX( REAL(msk(jip,2:nj-1) + msk(ji,3:nj)    + msk(jim,2:nj-1) + msk(ji,1:nj-2)   &
                      &                  + ris2*( msk(jip,3:nj)   + msk(jip,1:nj-2) + msk(jim,1:nj-2) + msk(jim,3:nj) ),4),0.01)
 
@@ -561,8 +552,6 @@ CONTAINS
                      & + (1.-w0)*(         xtmp(jip,2:nj-1) + xtmp(ji,3:nj)    + xtmp(jim,2:nj-1) + xtmp(ji,1:nj-2)    &
                      &            + ris2*( xtmp(jip,3:nj)   + xtmp(jip,1:nj-2) + xtmp(jim,1:nj-2) + xtmp(jim,3:nj) ) ) &
                      &                   * rdnm(ji,2:nj-1)
-
-                  WHERE( nbp(ji,2:nj-1) == 0 ) X(ji,2:nj-1) = xorig(ji,2:nj-1)  ! We do nothing for pixels that have zero neighbor!!!
 
                ELSE
                   X(ji,2:nj-1) = w0*xtmp(ji,2:nj-1) &
@@ -583,9 +572,9 @@ CONTAINS
 
       DEALLOCATE ( xtmp )
       IF (l_mask) DEALLOCATE (  xorig )
-      IF (l_emp)  DEALLOCATE ( rdnm , nbp )
+      IF (l_emp)  DEALLOCATE ( rdnm )
 
    END SUBROUTINE SMOOTHER
 
 
-END MODULE MOD_BDROWN
+END MODULE MOD_DROWN

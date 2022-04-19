@@ -4,21 +4,22 @@ MODULE MOD_MANIP
 
    !! Author: L. Brodeau
 
-   USE io_ezcdf, ONLY: DUMP_FIELD  ! debug
+   USE mod_conf, ONLY: rmissval
+   !USE io_ezcdf, ONLY: DUMP_FIELD  ! debug
 
    IMPLICIT NONE
-   
+
    PRIVATE
 
 
    INTERFACE flip_ud
       MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8, flip_ud_2d_r4, flip_ud_3d_i1
    END INTERFACE flip_ud
-   
+
    INTERFACE to_degE
       MODULE PROCEDURE to_degE_scal, to_degE_1d, to_degE_2d
    END INTERFACE to_degE
-   
+
    INTERFACE degE_to_degWE
       MODULE PROCEDURE degE_to_degWE_scal, degE_to_degWE_1d, degE_to_degWE_2d
    END INTERFACE degE_to_degWE
@@ -35,16 +36,13 @@ MODULE MOD_MANIP
       MODULE PROCEDURE long_reorg_3d_i1
    END INTERFACE long_reorg_3d
 
-   
+
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, &
       &      find_nearest_point, &
       &      shrink_vector, to_degE, degE_to_degWE, &
       &      ext_north_to_90_regg
-
-   REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
-
 
    !LOGICAL, PARAMETER :: ldebug = .TRUE., l_force_use_of_twisted = .FALSE.
    !LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_twisted = .TRUE.
@@ -158,17 +156,17 @@ CONTAINS
       END IF !IF (k_ew > -1)
 
 
-      
+
       !! ******************
       !! Southern Extension
       !! ******************
       XP4(:, 2) = XP4(:,4) - (XP4(:,5) - XP4(:,3))
       XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
 
-      !! ******************      
+      !! ******************
       !! Northern Extension
       !! ******************
-      
+
       SELECT CASE( iorca )
          !
       CASE (4)
@@ -874,7 +872,6 @@ CONTAINS
          !j_strt_t = MINVAL(MINLOC(Ytrg, mask=(Ytrg>=y_min_s), dim=2))  ! smallest j on target source that covers smallest source latitude
          i1dum = MINLOC(Ytrg, mask=(Ytrg>=y_min_s), dim=2)
          j_strt_t = MINVAL(i1dum, mask=(i1dum>0))
-         DEALLOCATE ( i1dum )
          j_stop_t = MAXVAL(MAXLOC(Ytrg, mask=(Ytrg<=y_max_s), dim=2))  ! largest j on target source that covers largest source latitude
          IF ( j_strt_t > j_stop_t ) jlat_icr = -1 ! latitude decreases as j increases (like ECMWF grids...)
          IF (ldebug) THEN
@@ -895,7 +892,7 @@ CONTAINS
       PRINT *, ''
 
       IF ( PRESENT( mask_domain_trg ) ) mask_domain_trg(:,:) = mask_ignore_t(:,:)
-      DEALLOCATE ( mask_ignore_t )
+      DEALLOCATE ( mask_ignore_t, i1dum )
 
    END SUBROUTINE FIND_NEAREST_POINT
 
@@ -1110,11 +1107,11 @@ CONTAINS
       !PRINT *, 'LOLO y_max_bnd #1 => ', y_max_bnd ; PRINT *, ' y_min_bnd #1 => ', y_min_bnd
       y_max_bnd = MIN( REAL(INT(y_max_bnd+2.),8) ,  90.)
       y_min_bnd = MAX( REAL(INT(y_min_bnd-2.),8) , -90.)
-      !PRINT *, 'LOLO y_max_bnd #2 => ', y_max_bnd ; PRINT *, ' y_min_bnd #2 => ', y_min_bnd      
+      !PRINT *, 'LOLO y_max_bnd #2 => ', y_max_bnd ; PRINT *, ' y_min_bnd #2 => ', y_min_bnd
       !! Multiple of 0.5:
       y_max_bnd = MIN( NINT(y_max_bnd/0.5)*0.5    ,  90.)
       y_min_bnd = MAX( NINT(y_min_bnd/0.5)*0.5    , -90.)
-      !PRINT *, 'LOLO y_max_bnd #3 => ', y_max_bnd ; PRINT *, ' y_min_bnd #3 => ', y_min_bnd      
+      !PRINT *, 'LOLO y_max_bnd #3 => ', y_max_bnd ; PRINT *, ' y_min_bnd #3 => ', y_min_bnd
 
       !lolo: WHY????
       y_max_bnd = MAX( y_max_bnd , y_max_bnd0)
@@ -1153,7 +1150,6 @@ CONTAINS
          !! Smalles ever possible j index of the smallest latitude in region where Ysrc>=rlat_low
          i1dum = MINLOC(Ysrc, mask=(Ysrc .GT. rlat_low), dim=2)
          jmin_band = MINVAL(i1dum, mask=(i1dum>0))
-         DEALLOCATE ( i1dum )
          !!
          !! To be sure to include everything, adding 1 extra points below and above:
          J_VLAT_S(jlat,1) = MAX(jmin_band - 1,   1  )
@@ -1184,7 +1180,7 @@ CONTAINS
          END IF
       END DO
 
-      rlat_old   = rflg
+      rlat_old = rmissval
       jj_t_old = -10
 
       DO jj_t = j_strt_t, j_stop_t, jlat_icr
@@ -1308,7 +1304,7 @@ CONTAINS
       WHERE ( JIpos == -1 ) mask_t = -1
       WHERE ( JJpos == -1 ) mask_t = -2
 
-      DEALLOCATE ( VLAT_SPLIT_BOUNDS, J_VLAT_S, e1_s, e2_s, mspot_lon , mspot_lat , Xdist )
+      DEALLOCATE ( VLAT_SPLIT_BOUNDS, J_VLAT_S, e1_s, e2_s, mspot_lon , mspot_lat , Xdist, i1dum)
 
    END SUBROUTINE FIND_NEAREST_TWISTED
 
@@ -1579,21 +1575,21 @@ CONTAINS
       !! From any longitude to something between 0 and 360 !
       REAL(8), INTENT(in) :: rlong
       REAL(8)             :: to_degE_scal
-      to_degE_scal = MOD( rlong + 360._8 , 360._8 )     
+      to_degE_scal = MOD( rlong + 360._8 , 360._8 )
    END FUNCTION to_degE_scal
    !!
    FUNCTION to_degE_1d( vlong )
       !! From any longitude to something between 0 and 360 !
       REAL(8), DIMENSION(:), INTENT(in) :: vlong
       REAL(8), DIMENSION(SIZE(vlong,1)) :: to_degE_1d
-      to_degE_1d(:) = MOD( vlong(:) + 360._8 , 360._8 )     
+      to_degE_1d(:) = MOD( vlong(:) + 360._8 , 360._8 )
    END FUNCTION to_degE_1d
    !!
    FUNCTION to_degE_2d( xlong )
       !! From any longitude to something between 0 and 360 !
       REAL(8), DIMENSION(:,:), INTENT(in) :: xlong
       REAL(8), DIMENSION(SIZE(xlong,1),SIZE(xlong,2)) :: to_degE_2d
-      to_degE_2d(:,:) = MOD( xlong(:,:) + 360._8 , 360._8 )     
+      to_degE_2d(:,:) = MOD( xlong(:,:) + 360._8 , 360._8 )
    END FUNCTION to_degE_2d
 
 
